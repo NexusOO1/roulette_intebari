@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Ruleta întrebărilor</title>
+
+<style>
+body {
+    background: #1e1e2f;
+    color: white;
+    text-align: center;
+    font-family: Arial;
+}
+
+#wheel-container {
+    position: relative;
+    width: 420px;
+    margin: 40px auto;
+}
+
+#wheel {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    border: 8px solid #444;
+    transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#arrow {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 30px;
+}
+
+button {
+    padding: 12px 25px;
+    font-size: 18px;
+    border: none;
+    border-radius: 10px;
+    background: #00cec9;
+    cursor: pointer;
+}
+
+#questionBox {
+    margin-top: 20px;
+    display: none;
+}
+
+.answer {
+    background: #2d3436;
+    margin: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.answer:hover {
+    background: #636e72;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎡 Ruleta întrebărilor</h1>
+
+<div id="wheel-container">
+    <div id="arrow">⬇️</div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+</div>
+
+<button onclick="spin()">Invirte</button>
+
+<div id="questionBox">
+    <h2 id="question"></h2>
+    <div id="answers"></div>
+</div>
+
+<h2 id="result"></h2>
+
+<script>
+const questions = [
+    {q:"Ce reprezintă metoda contabilității?", a:["Un sistem de jocuri economice","Ansamblul principiilor și procedeelor de evidență financiară","Doar calculul profitului","Doar evidența salariilor"], c:1},
+    {q:"În Republica Moldova, contabilitatea este reglementată de:", a:["Codul penal","Legea contabilității și SNC","Regulile bancare","Codul muncii"], c:1},
+    {q:"Ce include obiectul contabilității?", a:["Doar salariile","Patrimoniul, procesele economice și rezultatele financiare","Doar producția","Doar impozitele"], c:1},
+    {q:"Ce este documentarea în contabilitate?", a:["Calculul profitului","Analiza pieței","Consemnarea operațiunilor în documente justificative","Depunerea taxelor"], c:2},
+    {q:"Care sunt părțile unui cont contabil?", a:["Intrare și ieșire","Debit, credit și sold","Venit și taxă","Activ și pasiv"], c:1},
+    {q:"Ce reprezintă evaluarea?", a:["Exprimarea în bani a elementelor patrimoniale","Numărarea angajaților","Scrierea rapoartelor","Calculul salariilor"], c:0},
+    {q:"Ce presupune dubla înregistrare?", a:["O operațiune afectează un singur cont","O operațiune nu se notează","O operațiune afectează cel puțin două conturi","Se notează doar profitul"], c:2},
+    {q:"La ce servește balanța de verificare?", a:["Calcularea salariilor","Verificarea corectitudinii înregistrărilor","Angajarea personalului","Vânzarea produselor"], c:1},
+    {q:"Ce este inventarierea?", a:["erificarea faptică a bunurilor și datoriilor","Calcularea taxelor","Planificarea producției","Vânzarea produselor"], c:0},
+    {q:"Care este un principiu al contabilității?", a:["Jocul liber al pieței","Reducerea cheltuielilor personale","Publicitate obligatorie","Continuitatea activității"], c:3}
+];
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+const size = questions.length;
+const sectorAngle = (2 * Math.PI) / size;
+
+
+const startOffset = -Math.PI / 2;
+
+function drawWheel() {
+    const colors = [
+        "#ff7675","#74b9ff","#55efc4","#ffeaa7",
+        "#a29bfe","#fd79a8","#fab1a0","#00cec9",
+        "#e17055","#6c5ce7"
+    ];
+
+    for (let i = 0; i < size; i++) {
+        const start = startOffset + i * sectorAngle;
+        const end = start + sectorAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(200,200);
+        ctx.arc(200,200,200,start,end);
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+
+        ctx.strokeStyle = "#1e1e2f";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(200,200);
+        ctx.rotate(start + sectorAngle/2);
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+
+        let text = questions[i].q;
+        if (text.length > 15) text = text.slice(0,15)+"...";
+
+        ctx.fillText(text, 60, 5);
+        ctx.restore();
+    }
+}
+
+drawWheel();
+
+let rotation = 0;
+
+function getIndex(rot) {
+    const sectorDeg = 360 / size;
+    let normalized = (rot % 360 + 360) % 360;
+
+    return Math.floor((360 - normalized) / sectorDeg) % size;
+}
+
+function spin() {
+    const extra = 3600 + Math.random() * 360;
+
+    rotation += extra;
+    canvas.style.transform = `rotate(${rotation}deg)`;
+
+    document.getElementById("questionBox").style.display = "none";
+    document.getElementById("result").innerHTML = "";
+
+    setTimeout(() => {
+        const index = getIndex(rotation);
+        showQuestion(index);
+    }, 4000);
+}
+
+function showQuestion(i) {
+    const q = questions[i];
+
+    document.getElementById("question").innerText = q.q;
+
+    const answers = document.getElementById("answers");
+    answers.innerHTML = "";
+
+    q.a.forEach((ans, idx) => {
+        const div = document.createElement("div");
+        div.className = "answer";
+        div.innerText = ans;
+
+        div.onclick = () => {
+            document.getElementById("result").innerText =
+                idx === q.c ? "✅ Corect!" : "❌ Incorect!";
+            document.getElementById("result").style.color =
+                idx === q.c ? "lightgreen" : "red";
+        };
+
+        answers.appendChild(div);
+    });
+
+    document.getElementById("questionBox").style.display = "block";
+}
+</script>
+
+</body>
+</html>
